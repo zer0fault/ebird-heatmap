@@ -45,4 +45,3 @@ export interface GeoQueryParams {
   back?: number;   // days back, 1–30 (default 14)
   maxResults?: number;
 }
-

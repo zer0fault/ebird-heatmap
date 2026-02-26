@@ -1,5 +1,6 @@
 // Shared server-side utilities for eBird API proxy routes.
-// All functions in this file run server-side only — never shipped to the browser.
+// `server-only` makes any accidental client-side import a hard build error.
+import 'server-only';
 
 import { NextResponse } from 'next/server';
 
