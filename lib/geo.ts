@@ -4,7 +4,7 @@ export interface Coords {
 }
 
 // Geographic center of the contiguous US — used when geolocation is unavailable
-const FALLBACK: Coords = { lat: 39.8283, lng: -98.5795 };
+export const FALLBACK: Coords = { lat: 39.8283, lng: -98.5795 };
 
 /**
  * Returns the user's current coordinates via the browser Geolocation API.

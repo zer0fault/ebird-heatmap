@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 
-// Mapbox GL JS uses browser APIs (window, navigator) — disable SSR
+// MapLibre GL JS uses browser APIs (window, navigator) — disable SSR
 const Map = dynamic(() => import('@/components/Map'), { ssr: false });
 
 export default function Home() {
