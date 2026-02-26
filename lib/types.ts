@@ -7,7 +7,7 @@ export interface Observation {
   locId: string;         // e.g. "L99381"
   locName: string;       // e.g. "Stewart Park"
   obsDt: string;         // e.g. "2024-06-24 17:00"
-  howMany: number;       // individual bird count
+  howMany: number | null; // individual bird count — null on presence-only checklists
   lat: number;
   lng: number;
   obsValid: boolean;
@@ -46,7 +46,3 @@ export interface GeoQueryParams {
   maxResults?: number;
 }
 
-export interface ApiError {
-  error: string;
-  status: number;
-}
