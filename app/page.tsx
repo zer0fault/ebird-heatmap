@@ -12,6 +12,8 @@ import ControlPanel, { type Mode } from '@/components/ControlPanel';
 // MapLibre GL JS uses browser APIs — disable SSR
 const MapComponent = dynamic(() => import('@/components/Map'), { ssr: false });
 
+const GEO_QUERY_DEFAULTS = { dist: 50, back: 14, maxResults: 10000 } as const;
+
 /** Group by location, count unique species, normalize weight 0–1. */
 function buildBiodiversityData(observations: Observation[]): FeatureCollection<Point> {
   const locationMap = new Map<string, { lat: number; lng: number; species: Set<string> }>();
@@ -58,7 +60,7 @@ function buildSpeciesData(observations: Observation[]): FeatureCollection<Point>
     features: locations.map(({ lat, lng, count }) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [lng, lat] },
-      properties: { weight: count / maxCount, speciesCount: count },
+      properties: { weight: count / maxCount, individualCount: count },
     })),
   };
 }
@@ -80,7 +82,7 @@ export default function Home() {
     getUserLocation()
       .then((coords) => {
         setLocation(coords);
-        return fetchObservations({ lat: coords.lat, lng: coords.lng, dist: 50, back: 14, maxResults: 10000 });
+        return fetchObservations({ lat: coords.lat, lng: coords.lng, ...GEO_QUERY_DEFAULTS });
       })
       .then((obs) => setBiodiversityData(buildBiodiversityData(obs)))
       .catch(console.error)
@@ -95,9 +97,7 @@ export default function Home() {
     fetchSpecies({
       lat: location.lat,
       lng: location.lng,
-      dist: 50,
-      back: 14,
-      maxResults: 10000,
+      ...GEO_QUERY_DEFAULTS,
       speciesCode: species.speciesCode,
     })
       .then((obs) => setSpeciesData(buildSpeciesData(obs)))

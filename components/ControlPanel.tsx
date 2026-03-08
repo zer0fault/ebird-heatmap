@@ -27,11 +27,11 @@ export default function ControlPanel({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     if (query.trim().length < 2) {
       setResults([]);
       return;
     }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setIsSearching(true);
       searchTaxonomy(query)
