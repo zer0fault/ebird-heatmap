@@ -3,8 +3,14 @@
 import { useState, useEffect } from 'react';
 import ReactMapGL, { NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import type { FeatureCollection, Point } from 'geojson';
 import { getUserLocation, FALLBACK } from '@/lib/geo';
 import { DARK_MATTER_STYLE } from '@/lib/mapStyle';
+import HeatmapLayer from '@/components/HeatmapLayer';
+
+interface Props {
+  heatmapData: FeatureCollection<Point> | null;
+}
 
 interface ViewState {
   longitude: number;
@@ -18,7 +24,7 @@ const DEFAULT_VIEW: ViewState = {
   zoom: 4,
 };
 
-export default function Map() {
+export default function Map({ heatmapData }: Props) {
   const [viewState, setViewState] = useState<ViewState>(DEFAULT_VIEW);
 
   useEffect(() => {
@@ -35,6 +41,7 @@ export default function Map() {
       mapStyle={DARK_MATTER_STYLE}
     >
       <NavigationControl position="top-right" />
+      {heatmapData && <HeatmapLayer data={heatmapData} />}
     </ReactMapGL>
   );
 }
