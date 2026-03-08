@@ -1,5 +1,9 @@
 import type { Observation, TaxonomyEntry, GeoQueryParams } from '@/lib/types';
 
+interface SpeciesQueryParams extends GeoQueryParams {
+  speciesCode: string;
+}
+
 function buildParams(params: GeoQueryParams): URLSearchParams {
   const p = new URLSearchParams({
     lat: String(params.lat),
@@ -28,6 +32,13 @@ export function fetchObservations(params: GeoQueryParams): Promise<Observation[]
 /** Fetch notable/rare sightings near a coordinate. */
 export function fetchNotable(params: GeoQueryParams): Promise<Observation[]> {
   return fetchJson<Observation[]>(`/api/notable?${buildParams(params)}`);
+}
+
+/** Fetch recent sightings for a specific species near a coordinate. */
+export function fetchSpecies(params: SpeciesQueryParams): Promise<Observation[]> {
+  const p = buildParams(params);
+  p.set('speciesCode', params.speciesCode);
+  return fetchJson<Observation[]>(`/api/species?${p}`);
 }
 
 /** Search eBird taxonomy by common or scientific name. */
