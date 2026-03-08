@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import ReactMapGL, { NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { FeatureCollection, Point } from 'geojson';
-import { getUserLocation, FALLBACK } from '@/lib/geo';
+import { FALLBACK } from '@/lib/geo';
 import { DARK_MATTER_STYLE } from '@/lib/mapStyle';
 import HeatmapLayer from '@/components/HeatmapLayer';
 
 interface Props {
+  location: { lat: number; lng: number } | null;
   heatmapData: FeatureCollection<Point> | null;
 }
 
@@ -18,20 +19,19 @@ interface ViewState {
   zoom: number;
 }
 
-const DEFAULT_VIEW: ViewState = {
-  longitude: FALLBACK.lng,
-  latitude: FALLBACK.lat,
-  zoom: 4,
-};
+export default function Map({ location, heatmapData }: Props) {
+  const [viewState, setViewState] = useState<ViewState>({
+    longitude: FALLBACK.lng,
+    latitude: FALLBACK.lat,
+    zoom: 4,
+  });
 
-export default function Map({ heatmapData }: Props) {
-  const [viewState, setViewState] = useState<ViewState>(DEFAULT_VIEW);
-
+  // Center the map once when the resolved location arrives
   useEffect(() => {
-    getUserLocation().then(({ lat, lng }) => {
-      setViewState({ latitude: lat, longitude: lng, zoom: 9 });
-    });
-  }, []);
+    if (location) {
+      setViewState({ latitude: location.lat, longitude: location.lng, zoom: 9 });
+    }
+  }, [location]);
 
   return (
     <ReactMapGL

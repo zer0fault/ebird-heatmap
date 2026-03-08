@@ -36,15 +36,17 @@ function buildHeatmapData(observations: Observation[]): FeatureCollection<Point>
 }
 
 export default function Home() {
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [heatmapData, setHeatmapData] = useState<FeatureCollection<Point> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
     getUserLocation()
-      .then((coords) =>
-        fetchObservations({ lat: coords.lat, lng: coords.lng, dist: 50, back: 14, maxResults: 10000 })
-      )
+      .then((coords) => {
+        setLocation(coords);
+        return fetchObservations({ lat: coords.lat, lng: coords.lng, dist: 50, back: 14, maxResults: 10000 });
+      })
       .then((obs) => setHeatmapData(buildHeatmapData(obs)))
       .catch(console.error)
       .finally(() => setIsLoading(false));
@@ -52,7 +54,7 @@ export default function Home() {
 
   return (
     <div className="relative w-screen h-screen">
-      <MapComponent heatmapData={heatmapData} />
+      <MapComponent location={location} heatmapData={heatmapData} />
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="bg-black/70 text-white px-4 py-2 rounded text-sm">
