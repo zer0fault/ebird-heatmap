@@ -7,10 +7,12 @@ import type { FeatureCollection, Point } from 'geojson';
 import { FALLBACK } from '@/lib/geo';
 import { DARK_MATTER_STYLE } from '@/lib/mapStyle';
 import HeatmapLayer from '@/components/HeatmapLayer';
+import NotableMarkersLayer from '@/components/NotableMarkersLayer';
 
 interface Props {
   location: { lat: number; lng: number } | null;
   heatmapData: FeatureCollection<Point> | null;
+  notableData: FeatureCollection<Point> | null;
 }
 
 interface ViewState {
@@ -19,7 +21,7 @@ interface ViewState {
   zoom: number;
 }
 
-export default function Map({ location, heatmapData }: Props) {
+export default function Map({ location, heatmapData, notableData }: Props) {
   const [viewState, setViewState] = useState<ViewState>({
     longitude: FALLBACK.lng,
     latitude: FALLBACK.lat,
@@ -42,6 +44,7 @@ export default function Map({ location, heatmapData }: Props) {
     >
       <NavigationControl position="top-right" />
       {heatmapData && <HeatmapLayer data={heatmapData} />}
+      {notableData && <NotableMarkersLayer data={notableData} />}
     </ReactMapGL>
   );
 }

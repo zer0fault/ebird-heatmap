@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { getUserLocation } from '@/lib/geo';
-import { fetchObservations, fetchSpecies } from '@/lib/ebird';
+import { fetchObservations, fetchSpecies, fetchNotable } from '@/lib/ebird';
 import type { Observation, TaxonomyEntry } from '@/lib/types';
 import type { FeatureCollection, Point } from 'geojson';
 import Legend from '@/components/Legend';
@@ -34,6 +34,24 @@ function buildBiodiversityData(observations: Observation[]): FeatureCollection<P
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [lng, lat] },
       properties: { weight: species.size / maxCount, speciesCount: species.size },
+    })),
+  };
+}
+
+/** Map each notable observation to a GeoJSON point with popup properties. */
+function buildNotableData(observations: Observation[]): FeatureCollection<Point> {
+  return {
+    type: 'FeatureCollection',
+    features: observations.map((obs) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [obs.lng, obs.lat] },
+      properties: {
+        comName: obs.comName,
+        locName: obs.locName,
+        obsDt: obs.obsDt,
+        howMany: obs.howMany,
+        obsReviewed: obs.obsReviewed,
+      },
     })),
   };
 }
@@ -69,11 +87,12 @@ export default function Home() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [biodiversityData, setBiodiversityData] = useState<FeatureCollection<Point> | null>(null);
   const [speciesData, setSpeciesData] = useState<FeatureCollection<Point> | null>(null);
+  const [notableData, setNotableData] = useState<FeatureCollection<Point> | null>(null);
   const [mode, setMode] = useState<Mode>('biodiversity');
   const [selectedSpecies, setSelectedSpecies] = useState<TaxonomyEntry | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const heatmapData = mode === 'biodiversity' ? biodiversityData : speciesData;
+  const heatmapData = mode === 'notable' ? null : (mode === 'biodiversity' ? biodiversityData : speciesData);
   const resultCount = mode === 'species' && speciesData ? speciesData.features.length : null;
 
   // Load biodiversity data on mount
@@ -110,12 +129,20 @@ export default function Home() {
     if (newMode === 'biodiversity') {
       setSelectedSpecies(null);
       setSpeciesData(null);
+      setNotableData(null);
+    }
+    if (newMode === 'notable' && location && !notableData) {
+      setIsLoading(true);
+      fetchNotable({ lat: location.lat, lng: location.lng, ...GEO_QUERY_DEFAULTS })
+        .then((obs) => setNotableData(buildNotableData(obs)))
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
     }
   }
 
   return (
     <div className="relative w-screen h-screen">
-      <MapComponent location={location} heatmapData={heatmapData} />
+      <MapComponent location={location} heatmapData={heatmapData} notableData={mode === 'notable' ? notableData : null} />
       <ControlPanel
         mode={mode}
         onModeChange={handleModeChange}
@@ -130,7 +157,7 @@ export default function Home() {
           </div>
         </div>
       )}
-      {heatmapData && <Legend />}
+      {heatmapData && mode !== 'notable' && <Legend />}
     </div>
   );
 }

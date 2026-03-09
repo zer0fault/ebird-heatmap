@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { searchTaxonomy } from '@/lib/ebird';
 import type { TaxonomyEntry } from '@/lib/types';
 
-export type Mode = 'biodiversity' | 'species';
+export type Mode = 'biodiversity' | 'species' | 'notable';
 
 interface Props {
   mode: Mode;
@@ -73,6 +73,16 @@ export default function ControlPanel({
           onClick={() => onModeChange('species')}
         >
           Species
+        </button>
+        <button
+          className={`flex-1 py-1 rounded text-sm transition-colors ${
+            mode === 'notable'
+              ? 'bg-white text-black font-medium'
+              : 'bg-white/10 hover:bg-white/20'
+          }`}
+          onClick={() => onModeChange('notable')}
+        >
+          Notable
         </button>
       </div>
 
