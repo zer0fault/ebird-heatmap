@@ -14,6 +14,7 @@ import ControlPanel, { type Mode } from '@/components/ControlPanel';
 const MapComponent = dynamic(() => import('@/components/Map'), { ssr: false });
 
 const MAX_RESULTS = 10000;
+const FETCH_ERROR = 'Failed to load data. Check your connection and try again.';
 
 /** Round coords to 4 decimal places (~11m) to avoid cache misses from float drift. */
 function makeCacheKey(mode: string, lat: number, lng: number, dist: number, back: number, extra?: string): string {
@@ -147,7 +148,7 @@ export default function Home() {
         setCacheInfo({ fromCache, ts });
       } catch (err) {
         console.error(err);
-        setError('Failed to load observations. Check your connection and try again.');
+        setError(FETCH_ERROR);
       } finally {
         setIsLoading(false);
       }
@@ -170,7 +171,7 @@ export default function Home() {
       setCacheInfo({ fromCache, ts });
     } catch (err) {
       console.error(err);
-      setError('Failed to load species data. Check your connection and try again.');
+      setError(FETCH_ERROR);
     } finally {
       setIsLoading(false);
     }
@@ -199,7 +200,7 @@ export default function Home() {
         setCacheInfo({ fromCache, ts });
       } catch (err) {
         console.error(err);
-        setError('Failed to load notable sightings. Check your connection and try again.');
+        setError(FETCH_ERROR);
       } finally {
         setIsLoading(false);
       }
@@ -227,7 +228,7 @@ export default function Home() {
         setCacheInfo({ fromCache, ts });
       } catch (err) {
         console.error(err);
-        setError('Failed to load observations. Check your connection and try again.');
+        setError(FETCH_ERROR);
       } finally {
         setIsLoading(false);
       }
@@ -243,7 +244,7 @@ export default function Home() {
         setCacheInfo({ fromCache, ts });
       } catch (err) {
         console.error(err);
-        setError('Failed to load species data. Check your connection and try again.');
+        setError(FETCH_ERROR);
       } finally {
         setIsLoading(false);
       }
@@ -259,7 +260,7 @@ export default function Home() {
         setCacheInfo({ fromCache, ts });
       } catch (err) {
         console.error(err);
-        setError('Failed to load notable sightings. Check your connection and try again.');
+        setError(FETCH_ERROR);
       } finally {
         setIsLoading(false);
       }
@@ -301,7 +302,7 @@ export default function Home() {
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to refresh. Check your connection and try again.');
+      setError(FETCH_ERROR);
     } finally {
       setIsLoading(false);
     }
@@ -341,7 +342,7 @@ export default function Home() {
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to load observations. Check your connection and try again.');
+      setError(FETCH_ERROR);
     } finally {
       setIsLoading(false);
     }
@@ -383,7 +384,7 @@ export default function Home() {
       {error && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-red-900/90 text-white px-4 py-2 rounded text-sm flex items-center gap-3 z-10">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-white/60 hover:text-white transition-colors">✕</button>
+          <button onClick={() => setError(null)} aria-label="Dismiss error" className="text-white/60 hover:text-white transition-colors">✕</button>
         </div>
       )}
       {heatmapData && mode !== 'notable' && <Legend />}

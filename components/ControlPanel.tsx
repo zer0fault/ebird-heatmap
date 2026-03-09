@@ -132,9 +132,9 @@ export default function ControlPanel({
         )}
         {locResults.length > 0 && (
           <ul className="absolute left-0 right-0 mt-1 bg-gray-900 rounded border border-white/10 max-h-48 overflow-y-auto z-20">
-            {locResults.map((s, i) => (
+            {locResults.map((s) => (
               <li
-                key={i}
+                key={`${s.lat},${s.lng}`}
                 onClick={() => handleLocSelect(s)}
                 className="px-3 py-2 text-sm hover:bg-white/10 cursor-pointer"
               >
