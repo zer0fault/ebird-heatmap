@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { getUserLocation } from '@/lib/geo';
 import { fetchObservations, fetchSpecies, fetchNotable } from '@/lib/ebird';
-import { getCached, setCached, clearCache, type CacheInfo } from '@/lib/cache';
+import { getCached, setCached, type CacheInfo } from '@/lib/cache';
 import type { Observation, TaxonomyEntry } from '@/lib/types';
 import type { FeatureCollection, Point } from 'geojson';
 import Legend from '@/components/Legend';
@@ -35,8 +35,7 @@ async function fetchWithCache<T>(
     if (cached) return { data: cached.data, fromCache: true, ts: cached.ts };
   }
   const data = await fetcher();
-  const ts = Date.now();
-  await setCached(key, data);
+  const ts = await setCached(key, data);
   return { data, fromCache: false, ts };
 }
 
@@ -170,7 +169,11 @@ export default function Home() {
     if (newMode === 'biodiversity') {
       setSelectedSpecies(null);
       setSpeciesData(null);
+      setCacheInfo(null); // biodiversity cacheInfo was lost; clear until next fetch
       return;
+    }
+    if (newMode === 'species') {
+      setCacheInfo(null); // will update when a species is selected
     }
     if (newMode === 'notable' && location && !notableData) {
       setIsLoading(true);
@@ -246,7 +249,7 @@ export default function Home() {
 
   async function handleRefresh() {
     if (!location) return;
-    await clearCache();
+    // forceRefresh=true in fetchWithCache overwrites the key — no need to clear all
     setBiodiversityData(null);
     setSpeciesData(null);
     setNotableData(null);
