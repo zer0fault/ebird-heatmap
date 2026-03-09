@@ -14,18 +14,25 @@ export interface CacheInfo {
   ts: number;
 }
 
-// Module-level singleton — one connection shared across all operations
-const dbPromise = openDB(DB_NAME, 1, {
-  upgrade(db) {
-    if (!db.objectStoreNames.contains(STORE)) {
-      db.createObjectStore(STORE);
-    }
-  },
-});
+// Lazily initialized singleton — deferred until first use so SSR never touches indexedDB
+let dbPromise: ReturnType<typeof openDB> | null = null;
+
+function getDB() {
+  if (!dbPromise) {
+    dbPromise = openDB(DB_NAME, 1, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains(STORE)) {
+          db.createObjectStore(STORE);
+        }
+      },
+    });
+  }
+  return dbPromise;
+}
 
 /** Returns the cached entry if it exists and hasn't expired, otherwise null. */
 export async function getCached<T>(key: string): Promise<CacheEntry<T> | null> {
-  const db = await dbPromise;
+  const db = await getDB();
   const entry: CacheEntry<T> | undefined = await db.get(STORE, key);
   if (!entry) return null;
   if (Date.now() - entry.ts > TTL_MS) {
@@ -37,7 +44,7 @@ export async function getCached<T>(key: string): Promise<CacheEntry<T> | null> {
 
 /** Stores data in the cache. Returns the timestamp that was persisted. */
 export async function setCached<T>(key: string, data: T): Promise<number> {
-  const db = await dbPromise;
+  const db = await getDB();
   const ts = Date.now();
   const entry: CacheEntry<T> = { data, ts };
   await db.put(STORE, entry, key);
@@ -46,6 +53,6 @@ export async function setCached<T>(key: string, data: T): Promise<number> {
 
 /** Clears all cached entries. */
 export async function clearCache(): Promise<void> {
-  const db = await dbPromise;
+  const db = await getDB();
   await db.clear(STORE);
 }
