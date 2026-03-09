@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { searchTaxonomy } from '@/lib/ebird';
 import type { TaxonomyEntry } from '@/lib/types';
+import type { CacheInfo } from '@/lib/cache';
 
 export type Mode = 'biodiversity' | 'species' | 'notable';
 
@@ -15,6 +16,8 @@ interface Props {
   back: number;
   dist: number;
   onFilterChange: (back: number, dist: number) => void;
+  cacheInfo: CacheInfo | null;
+  onRefresh: () => void;
 }
 
 export default function ControlPanel({
@@ -26,6 +29,8 @@ export default function ControlPanel({
   back,
   dist,
   onFilterChange,
+  cacheInfo,
+  onRefresh,
 }: Props) {
   // Local slider state for smooth display — committed to parent on release
   const [localBack, setLocalBack] = useState(back);
@@ -58,6 +63,15 @@ export default function ControlPanel({
     onSpeciesSelect(species);
     setQuery('');
     setResults([]);
+  }
+
+  function formatAge(ts: number): string {
+    const mins = Math.floor((Date.now() - ts) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
   }
 
   function commitFilters() {
@@ -172,6 +186,23 @@ export default function ControlPanel({
               ))}
             </ul>
           )}
+        </div>
+      )}
+      {/* Cache status */}
+      {cacheInfo && (
+        <div className="flex items-center justify-between text-xs text-white/50 mt-3 pt-2 border-t border-white/10">
+          <span>
+            {cacheInfo.fromCache
+              ? `From cache · ${formatAge(cacheInfo.ts)}`
+              : 'Live'}
+          </span>
+          <button
+            onClick={onRefresh}
+            className="text-white/50 hover:text-white transition-colors"
+            title="Bypass cache and re-fetch"
+          >
+            ↺ Refresh
+          </button>
         </div>
       )}
     </div>
