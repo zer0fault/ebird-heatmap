@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { searchTaxonomy } from '@/lib/ebird';
+import { searchLocation, type GeocodeSuggestion } from '@/lib/geocode';
 import type { TaxonomyEntry } from '@/lib/types';
 import type { CacheInfo } from '@/lib/cache';
 
@@ -18,6 +19,8 @@ interface Props {
   onFilterChange: (back: number, dist: number) => void;
   cacheInfo: CacheInfo | null;
   onRefresh: () => void;
+  onLocationChange: (lat: number, lng: number, label: string) => void;
+  locationLabel: string | null;
 }
 
 export default function ControlPanel({
@@ -31,6 +34,8 @@ export default function ControlPanel({
   onFilterChange,
   cacheInfo,
   onRefresh,
+  onLocationChange,
+  locationLabel,
 }: Props) {
   // Local slider state for smooth display — committed to parent on release
   const [localBack, setLocalBack] = useState(back);
@@ -40,6 +45,12 @@ export default function ControlPanel({
   const [results, setResults] = useState<TaxonomyEntry[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Location search state
+  const [locQuery, setLocQuery] = useState('');
+  const [locResults, setLocResults] = useState<GeocodeSuggestion[]>([]);
+  const [isLocSearching, setIsLocSearching] = useState(false);
+  const locDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -58,6 +69,30 @@ export default function ControlPanel({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query]);
+
+  useEffect(() => {
+    if (locDebounceRef.current) clearTimeout(locDebounceRef.current);
+    if (locQuery.trim().length < 2) {
+      setLocResults([]);
+      return;
+    }
+    locDebounceRef.current = setTimeout(() => {
+      setIsLocSearching(true);
+      searchLocation(locQuery)
+        .then(setLocResults)
+        .catch(console.error)
+        .finally(() => setIsLocSearching(false));
+    }, 300);
+    return () => {
+      if (locDebounceRef.current) clearTimeout(locDebounceRef.current);
+    };
+  }, [locQuery]);
+
+  function handleLocSelect(suggestion: GeocodeSuggestion) {
+    onLocationChange(suggestion.lat, suggestion.lng, suggestion.name);
+    setLocQuery('');
+    setLocResults([]);
+  }
 
   function handleSelect(species: TaxonomyEntry) {
     onSpeciesSelect(species);
@@ -80,6 +115,37 @@ export default function ControlPanel({
 
   return (
     <div className="absolute top-4 left-4 bg-black/70 text-white rounded p-3 w-72 z-10">
+      {/* Location search */}
+      <div className="relative mb-3">
+        <input
+          type="text"
+          placeholder="Search location…"
+          value={locQuery}
+          onChange={(e) => setLocQuery(e.target.value)}
+          className="w-full bg-white/10 rounded px-3 py-1.5 text-sm placeholder-white/40 outline-none focus:bg-white/20"
+        />
+        {locationLabel && !locQuery && (
+          <div className="text-xs text-white/50 mt-1 truncate">{locationLabel}</div>
+        )}
+        {isLocSearching && (
+          <div className="text-xs text-white/50 mt-1">Searching…</div>
+        )}
+        {locResults.length > 0 && (
+          <ul className="absolute left-0 right-0 mt-1 bg-gray-900 rounded border border-white/10 max-h-48 overflow-y-auto z-20">
+            {locResults.map((s, i) => (
+              <li
+                key={i}
+                onClick={() => handleLocSelect(s)}
+                className="px-3 py-2 text-sm hover:bg-white/10 cursor-pointer"
+              >
+                <div>{s.name}</div>
+                <div className="text-xs text-white/50 truncate">{s.fullName}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {/* Mode toggle */}
       <div className="flex gap-2 mb-3">
         <button

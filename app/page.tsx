@@ -119,6 +119,7 @@ export default function Home() {
   const [back, setBack] = useState(14);
   const [dist, setDist] = useState(50);
   const [cacheInfo, setCacheInfo] = useState<CacheInfo | null>(null);
+  const [locationLabel, setLocationLabel] = useState<string | null>(null);
 
   const heatmapData = mode === 'notable' ? null : (mode === 'biodiversity' ? biodiversityData : speciesData);
   const resultCount = mode === 'species' && speciesData ? speciesData.features.length : null;
@@ -285,6 +286,44 @@ export default function Home() {
     }
   }
 
+  async function handleLocationChange(lat: number, lng: number, label: string) {
+    setLocation({ lat, lng });
+    setLocationLabel(label);
+    setBiodiversityData(null);
+    setSpeciesData(null);
+    setNotableData(null);
+    setCacheInfo(null);
+    setIsLoading(true);
+    try {
+      if (mode === 'biodiversity') {
+        const key = makeCacheKey('biodiversity', lat, lng, dist, back);
+        const { data, fromCache, ts } = await fetchWithCache(key, () =>
+          fetchObservations({ lat, lng, dist, back, maxResults: MAX_RESULTS })
+        );
+        setBiodiversityData(buildBiodiversityData(data));
+        setCacheInfo({ fromCache, ts });
+      } else if (mode === 'species' && selectedSpecies) {
+        const key = makeCacheKey('species', lat, lng, dist, back, selectedSpecies.speciesCode);
+        const { data, fromCache, ts } = await fetchWithCache(key, () =>
+          fetchSpecies({ lat, lng, dist, back, maxResults: MAX_RESULTS, speciesCode: selectedSpecies.speciesCode })
+        );
+        setSpeciesData(buildSpeciesData(data));
+        setCacheInfo({ fromCache, ts });
+      } else if (mode === 'notable') {
+        const key = makeCacheKey('notable', lat, lng, dist, back);
+        const { data, fromCache, ts } = await fetchWithCache(key, () =>
+          fetchNotable({ lat, lng, dist, back, maxResults: MAX_RESULTS })
+        );
+        setNotableData(buildNotableData(data));
+        setCacheInfo({ fromCache, ts });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <div className="relative w-screen h-screen">
       <MapComponent location={location} heatmapData={heatmapData} notableData={mode === 'notable' ? notableData : null} />
@@ -299,6 +338,8 @@ export default function Home() {
         onFilterChange={handleFilterChange}
         cacheInfo={cacheInfo}
         onRefresh={handleRefresh}
+        onLocationChange={handleLocationChange}
+        locationLabel={locationLabel}
       />
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
