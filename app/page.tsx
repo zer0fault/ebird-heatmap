@@ -116,6 +116,7 @@ export default function Home() {
   const [mode, setMode] = useState<Mode>('biodiversity');
   const [selectedSpecies, setSelectedSpecies] = useState<TaxonomyEntry | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [back, setBack] = useState(14);
   const [dist, setDist] = useState(50);
   const [cacheInfo, setCacheInfo] = useState<CacheInfo | null>(null);
@@ -124,10 +125,17 @@ export default function Home() {
   const heatmapData = mode === 'notable' ? null : (mode === 'biodiversity' ? biodiversityData : speciesData);
   const resultCount = mode === 'species' && speciesData ? speciesData.features.length : null;
 
+  const isEmpty = !isLoading && (
+    (mode === 'biodiversity' && biodiversityData !== null && biodiversityData.features.length === 0) ||
+    (mode === 'species' && selectedSpecies !== null && speciesData !== null && speciesData.features.length === 0) ||
+    (mode === 'notable' && notableData !== null && notableData.features.length === 0)
+  );
+
   // Load biodiversity data on mount
   useEffect(() => {
     (async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const coords = await getUserLocation();
         setLocation(coords);
@@ -139,6 +147,7 @@ export default function Home() {
         setCacheInfo({ fromCache, ts });
       } catch (err) {
         console.error(err);
+        setError('Failed to load observations. Check your connection and try again.');
       } finally {
         setIsLoading(false);
       }
@@ -151,6 +160,7 @@ export default function Home() {
     setSelectedSpecies(species);
     setSpeciesData(null);
     setIsLoading(true);
+    setError(null);
     try {
       const key = makeCacheKey('species', location.lat, location.lng, dist, back, species.speciesCode);
       const { data, fromCache, ts } = await fetchWithCache(key, () =>
@@ -160,6 +170,7 @@ export default function Home() {
       setCacheInfo({ fromCache, ts });
     } catch (err) {
       console.error(err);
+      setError('Failed to load species data. Check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -178,6 +189,7 @@ export default function Home() {
     }
     if (newMode === 'notable' && location && !notableData) {
       setIsLoading(true);
+      setError(null);
       try {
         const key = makeCacheKey('notable', location.lat, location.lng, dist, back);
         const { data, fromCache, ts } = await fetchWithCache(key, () =>
@@ -187,6 +199,7 @@ export default function Home() {
         setCacheInfo({ fromCache, ts });
       } catch (err) {
         console.error(err);
+        setError('Failed to load notable sightings. Check your connection and try again.');
       } finally {
         setIsLoading(false);
       }
@@ -204,6 +217,7 @@ export default function Home() {
 
     if (mode === 'biodiversity') {
       setIsLoading(true);
+      setError(null);
       try {
         const key = makeCacheKey('biodiversity', location.lat, location.lng, newDist, newBack);
         const { data, fromCache, ts } = await fetchWithCache(key, () =>
@@ -213,11 +227,13 @@ export default function Home() {
         setCacheInfo({ fromCache, ts });
       } catch (err) {
         console.error(err);
+        setError('Failed to load observations. Check your connection and try again.');
       } finally {
         setIsLoading(false);
       }
     } else if (mode === 'species' && selectedSpecies) {
       setIsLoading(true);
+      setError(null);
       try {
         const key = makeCacheKey('species', location.lat, location.lng, newDist, newBack, selectedSpecies.speciesCode);
         const { data, fromCache, ts } = await fetchWithCache(key, () =>
@@ -227,11 +243,13 @@ export default function Home() {
         setCacheInfo({ fromCache, ts });
       } catch (err) {
         console.error(err);
+        setError('Failed to load species data. Check your connection and try again.');
       } finally {
         setIsLoading(false);
       }
     } else if (mode === 'notable') {
       setIsLoading(true);
+      setError(null);
       try {
         const key = makeCacheKey('notable', location.lat, location.lng, newDist, newBack);
         const { data, fromCache, ts } = await fetchWithCache(key, () =>
@@ -241,6 +259,7 @@ export default function Home() {
         setCacheInfo({ fromCache, ts });
       } catch (err) {
         console.error(err);
+        setError('Failed to load notable sightings. Check your connection and try again.');
       } finally {
         setIsLoading(false);
       }
@@ -256,6 +275,7 @@ export default function Home() {
     setNotableData(null);
     setCacheInfo(null);
     setIsLoading(true);
+    setError(null);
     try {
       if (mode === 'biodiversity') {
         const key = makeCacheKey('biodiversity', location.lat, location.lng, dist, back);
@@ -281,6 +301,7 @@ export default function Home() {
       }
     } catch (err) {
       console.error(err);
+      setError('Failed to refresh. Check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -294,6 +315,7 @@ export default function Home() {
     setNotableData(null);
     setCacheInfo(null);
     setIsLoading(true);
+    setError(null);
     try {
       if (mode === 'biodiversity') {
         const key = makeCacheKey('biodiversity', lat, lng, dist, back);
@@ -319,6 +341,7 @@ export default function Home() {
       }
     } catch (err) {
       console.error(err);
+      setError('Failed to load observations. Check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -343,9 +366,24 @@ export default function Home() {
       />
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="bg-black/70 text-white px-4 py-2 rounded text-sm">
+          <div className="bg-black/70 text-white px-5 py-3 rounded-lg flex items-center gap-3 text-sm">
+            <svg className="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
             Loading observations…
           </div>
+        </div>
+      )}
+      {isEmpty && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/70 text-white/80 px-4 py-2 rounded text-sm pointer-events-none">
+          No observations found — try a wider radius or longer lookback.
+        </div>
+      )}
+      {error && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-red-900/90 text-white px-4 py-2 rounded text-sm flex items-center gap-3 z-10">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-white/60 hover:text-white transition-colors">✕</button>
         </div>
       )}
       {heatmapData && mode !== 'notable' && <Legend />}
