@@ -12,6 +12,9 @@ interface Props {
   onSpeciesSelect: (species: TaxonomyEntry) => void;
   selectedSpecies: TaxonomyEntry | null;
   resultCount: number | null;
+  back: number;
+  dist: number;
+  onFilterChange: (back: number, dist: number) => void;
 }
 
 export default function ControlPanel({
@@ -20,7 +23,14 @@ export default function ControlPanel({
   onSpeciesSelect,
   selectedSpecies,
   resultCount,
+  back,
+  dist,
+  onFilterChange,
 }: Props) {
+  // Local slider state for smooth display — committed to parent on release
+  const [localBack, setLocalBack] = useState(back);
+  const [localDist, setLocalDist] = useState(dist);
+
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<TaxonomyEntry[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -48,6 +58,10 @@ export default function ControlPanel({
     onSpeciesSelect(species);
     setQuery('');
     setResults([]);
+  }
+
+  function commitFilters() {
+    onFilterChange(localBack, localDist);
   }
 
   return (
@@ -84,6 +98,42 @@ export default function ControlPanel({
         >
           Notable
         </button>
+      </div>
+
+      {/* Filters */}
+      <div className="space-y-3 mb-3">
+        <div>
+          <div className="flex justify-between text-xs text-white/70 mb-1">
+            <span>Radius</span>
+            <span>{localDist} km</span>
+          </div>
+          <input
+            type="range"
+            min={10}
+            max={50}
+            value={localDist}
+            onChange={(e) => setLocalDist(Number(e.target.value))}
+            onMouseUp={commitFilters}
+            onTouchEnd={commitFilters}
+            className="w-full accent-white cursor-pointer"
+          />
+        </div>
+        <div>
+          <div className="flex justify-between text-xs text-white/70 mb-1">
+            <span>Lookback</span>
+            <span>Last {localBack} day{localBack !== 1 ? 's' : ''}</span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={30}
+            value={localBack}
+            onChange={(e) => setLocalBack(Number(e.target.value))}
+            onMouseUp={commitFilters}
+            onTouchEnd={commitFilters}
+            className="w-full accent-white cursor-pointer"
+          />
+        </div>
       </div>
 
       {/* Species search — only shown in species mode */}

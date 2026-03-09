@@ -12,7 +12,7 @@ import ControlPanel, { type Mode } from '@/components/ControlPanel';
 // MapLibre GL JS uses browser APIs — disable SSR
 const MapComponent = dynamic(() => import('@/components/Map'), { ssr: false });
 
-const GEO_QUERY_DEFAULTS = { dist: 50, back: 14, maxResults: 10000 } as const;
+const MAX_RESULTS = 10000;
 
 /** Group by location, count unique species, normalize weight 0–1. */
 function buildBiodiversityData(observations: Observation[]): FeatureCollection<Point> {
@@ -91,6 +91,8 @@ export default function Home() {
   const [mode, setMode] = useState<Mode>('biodiversity');
   const [selectedSpecies, setSelectedSpecies] = useState<TaxonomyEntry | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [back, setBack] = useState(14);
+  const [dist, setDist] = useState(50);
 
   const heatmapData = mode === 'notable' ? null : (mode === 'biodiversity' ? biodiversityData : speciesData);
   const resultCount = mode === 'species' && speciesData ? speciesData.features.length : null;
@@ -101,11 +103,12 @@ export default function Home() {
     getUserLocation()
       .then((coords) => {
         setLocation(coords);
-        return fetchObservations({ lat: coords.lat, lng: coords.lng, ...GEO_QUERY_DEFAULTS });
+        return fetchObservations({ lat: coords.lat, lng: coords.lng, dist, back, maxResults: MAX_RESULTS });
       })
       .then((obs) => setBiodiversityData(buildBiodiversityData(obs)))
       .catch(console.error)
       .finally(() => setIsLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleSpeciesSelect(species: TaxonomyEntry) {
@@ -116,7 +119,9 @@ export default function Home() {
     fetchSpecies({
       lat: location.lat,
       lng: location.lng,
-      ...GEO_QUERY_DEFAULTS,
+      dist,
+      back,
+      maxResults: MAX_RESULTS,
       speciesCode: species.speciesCode,
     })
       .then((obs) => setSpeciesData(buildSpeciesData(obs)))
@@ -132,11 +137,43 @@ export default function Home() {
     }
     if (newMode === 'notable' && location && !notableData) {
       setIsLoading(true);
-      fetchNotable({ lat: location.lat, lng: location.lng, ...GEO_QUERY_DEFAULTS })
+      fetchNotable({ lat: location.lat, lng: location.lng, dist, back, maxResults: MAX_RESULTS })
         .then((obs) => setNotableData(buildNotableData(obs)))
         .catch(console.error)
         .finally(() => setIsLoading(false));
     }
+  }
+
+  function handleFilterChange(newBack: number, newDist: number) {
+    if (!location) return;
+    setBack(newBack);
+    setDist(newDist);
+
+    // All cached data is stale — clear and re-fetch the active mode
+    setBiodiversityData(null);
+    setSpeciesData(null);
+    setNotableData(null);
+
+    if (mode === 'biodiversity') {
+      setIsLoading(true);
+      fetchObservations({ lat: location.lat, lng: location.lng, dist: newDist, back: newBack, maxResults: MAX_RESULTS })
+        .then((obs) => setBiodiversityData(buildBiodiversityData(obs)))
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
+    } else if (mode === 'species' && selectedSpecies) {
+      setIsLoading(true);
+      fetchSpecies({ lat: location.lat, lng: location.lng, dist: newDist, back: newBack, maxResults: MAX_RESULTS, speciesCode: selectedSpecies.speciesCode })
+        .then((obs) => setSpeciesData(buildSpeciesData(obs)))
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
+    } else if (mode === 'notable') {
+      setIsLoading(true);
+      fetchNotable({ lat: location.lat, lng: location.lng, dist: newDist, back: newBack, maxResults: MAX_RESULTS })
+        .then((obs) => setNotableData(buildNotableData(obs)))
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
+    }
+    // mode === 'species' with no species selected: cache cleared, no fetch needed
   }
 
   return (
@@ -148,6 +185,9 @@ export default function Home() {
         onSpeciesSelect={handleSpeciesSelect}
         selectedSpecies={selectedSpecies}
         resultCount={resultCount}
+        back={back}
+        dist={dist}
+        onFilterChange={handleFilterChange}
       />
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
