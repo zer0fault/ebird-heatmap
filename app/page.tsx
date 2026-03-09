@@ -129,7 +129,6 @@ export default function Home() {
     if (newMode === 'biodiversity') {
       setSelectedSpecies(null);
       setSpeciesData(null);
-      setNotableData(null);
     }
     if (newMode === 'notable' && location && !notableData) {
       setIsLoading(true);

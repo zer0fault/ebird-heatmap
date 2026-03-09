@@ -87,7 +87,7 @@ export default function NotableMarkersLayer({ data }: Props) {
         locName: f.properties?.locName ?? '',
         obsDt: f.properties?.obsDt ?? '',
         howMany: f.properties?.howMany ?? null,
-        obsReviewed: Boolean(f.properties?.obsReviewed),
+        obsReviewed: f.properties?.obsReviewed === true || f.properties?.obsReviewed === 'true',
       });
     }
 
